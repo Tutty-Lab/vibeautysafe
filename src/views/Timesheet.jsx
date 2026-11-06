@@ -2,7 +2,9 @@ import { useState } from "react";
 import { useStore } from "../store.jsx";
 import { staffList, monthStats, payFor, wageChecks, segsFor, exportMonthCsv } from "../lib/logic.js";
 import { monthKey, monthLabel, monthOptions, hours, eur, deDate, hm, durTxt, initials, todayKey } from "../lib/utils.js";
-import { PageHead, Empty, Status, Row, ModalHead, Field } from "../components/ui.jsx";
+import { PageHead, Empty, Status, Row, List, ModalHead, Field, Select, Muted, TableBox, Actions, Button, Panel } from "../components/ui.jsx";
+import { Input } from "@/components/ui/input";
+import { TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
 import { dayDoc } from "./Kiosk.jsx";
 
 export default function Timesheet() {
@@ -13,8 +15,8 @@ export default function Timesheet() {
 
   const head = (
     <PageHead title="Bảng giờ" actions={<>
-      <select value={m} onChange={(e) => setM(e.target.value)} aria-label="Chọn tháng">{monthOptions().map((x) => <option key={x} value={x}>{monthLabel(x)}</option>)}</select>
-      <button className="btn primary" onClick={() => toast("Đã lưu " + exportMonthCsv(D, m))}>Xuất CSV</button>
+      <Select value={m} onChange={setM} aria-label="Chọn tháng" className="w-40">{monthOptions().map((x) => <option key={x} value={x}>{monthLabel(x)}</option>)}</Select>
+      <Button onClick={() => toast("Đã lưu " + exportMonthCsv(D, m))}>Xuất CSV</Button>
     </>}>Arbeitszeitnachweis theo § 17 MiLoG. Mỗi lần sửa giờ đều ghi lý do.</PageHead>
   );
 
@@ -24,24 +26,24 @@ export default function Timesheet() {
     return (
       <>
         {head}
-        <button className="btn ghost back" onClick={() => setDetail(null)}>← Tất cả nhân viên</button>
-        <div className="card person-head">
-          <span className="avatar">{initials(s.name)}</span>
-          <div className="grow"><h2 className="h-plain">{s.name}</h2><div className="muted small">{s.contract} · {hours(x.min)} giờ · {eur(payFor(s, x.min))}</div></div>
-          <button className="btn" onClick={() => edit(m === monthKey(new Date()) ? todayKey() : m + "-01")}>Thêm ngày làm</button>
-        </div>
-        {w.length > 0 && <div className="lines">{w.map((q, i) => <Row key={i} level={q.level} title={q.t} />)}</div>}
+        <Button variant="ghost" className="self-start" onClick={() => setDetail(null)}>← Tất cả nhân viên</Button>
+        <Panel className="flex flex-wrap items-center gap-3">
+          <span className="grid size-10 place-items-center rounded-full bg-muted text-sm font-semibold text-muted-foreground">{initials(s.name)}</span>
+          <div className="flex-1"><div className="text-base font-semibold">{s.name}</div><div className="text-muted-foreground">{s.contract} · {hours(x.min)} giờ · {eur(payFor(s, x.min))}</div></div>
+          <Button variant="outline" onClick={() => edit(m === monthKey(new Date()) ? todayKey() : m + "-01")}>Thêm ngày làm</Button>
+        </Panel>
+        {w.length > 0 && <List>{w.map((q, i) => <Row key={i} level={q.level} title={q.t} />)}</List>}
         {x.rows.length ? (
-          <div className="table-wrap"><table>
-            <thead><tr><th>Ngày</th><th className="num">Beginn</th><th className="num">Ende</th><th className="num">Pause</th><th className="num">Dauer</th><th>Ghi chú</th><th /></tr></thead>
-            <tbody>{x.rows.map((r) => (
-              <tr key={r.date}>
-                <td className="mono">{deDate(r.date)}</td><td className="num">{hm(r.first)}</td><td className="num">{hm(r.last)}</td>
-                <td className="num">{Math.round(r.pause)} min</td><td className="num">{durTxt(r.work)}</td>
-                <td className="wrap">{r.flags.length ? r.flags.map((f, i) => <Status key={i} level={f.level}>{f.t}</Status>) : <Status level="ok">Ổn</Status>}</td>
-                <td><button className="btn ghost sm" onClick={() => edit(r.date)}>Sửa</button></td>
-              </tr>))}</tbody>
-          </table></div>
+          <TableBox>
+            <TableHeader><TableRow><TableHead>Ngày</TableHead><TableHead className="text-right">Beginn</TableHead><TableHead className="text-right">Ende</TableHead><TableHead className="text-right">Pause</TableHead><TableHead className="text-right">Dauer</TableHead><TableHead>Ghi chú</TableHead><TableHead /></TableRow></TableHeader>
+            <TableBody>{x.rows.map((r) => (
+              <TableRow key={r.date}>
+                <TableCell className="tabular-nums">{deDate(r.date)}</TableCell><TableCell className="text-right tabular-nums">{hm(r.first)}</TableCell><TableCell className="text-right tabular-nums">{hm(r.last)}</TableCell>
+                <TableCell className="text-right tabular-nums">{Math.round(r.pause)} min</TableCell><TableCell className="text-right tabular-nums">{durTxt(r.work)}</TableCell>
+                <TableCell className="whitespace-normal"><div className="flex flex-wrap gap-1">{r.flags.length ? r.flags.map((f, i) => <Status key={i} level={f.level}>{f.t}</Status>) : <Status level="ok">Ổn</Status>}</div></TableCell>
+                <TableCell><Button variant="ghost" size="sm" onClick={() => edit(r.date)}>Sửa</Button></TableCell>
+              </TableRow>))}</TableBody>
+          </TableBox>
         ) : <Empty>Không có giờ làm trong {monthLabel(m).toLowerCase()}.</Empty>}
       </>
     );
@@ -51,22 +53,22 @@ export default function Timesheet() {
     <>
       {head}
       {!st.length ? <Empty>Chưa có nhân viên.</Empty> : (
-        <div className="table-wrap"><table>
-          <thead><tr><th>Nhân viên</th><th>Hợp đồng</th><th className="num">Ngày</th><th className="num">Giờ</th><th className="num">Lương dự tính</th><th className="num">€/giờ thực tế</th><th>Trạng thái</th></tr></thead>
-          <tbody>{st.map((s) => {
+        <TableBox>
+          <TableHeader><TableRow><TableHead>Nhân viên</TableHead><TableHead>Hợp đồng</TableHead><TableHead className="text-right">Ngày</TableHead><TableHead className="text-right">Giờ</TableHead><TableHead className="text-right">Lương dự tính</TableHead><TableHead className="text-right">€/giờ thực tế</TableHead><TableHead>Trạng thái</TableHead></TableRow></TableHeader>
+          <TableBody>{st.map((s) => {
             const x = monthStats(D, s.id, m); const pay = payFor(s, x.min); const eff = x.min ? pay / (x.min / 60) : null; const w = wageChecks(D, s, m, x);
             const fl = x.rows.reduce((a, r) => a + r.flags.length, 0) + x.open;
             const lv = w.some((q) => q.level === "crit") ? "crit" : w.length || fl ? "warn" : "ok";
             return (
-              <tr key={s.id} className="click" onClick={() => setDetail(s.id)}>
-                <td><b>{s.name}</b>{s.example && <span className="tag">Ví dụ</span>}</td><td>{s.contract || "—"}</td>
-                <td className="num">{x.days}</td><td className="num">{hours(x.min)}</td><td className="num">{eur(pay)}</td><td className="num">{eff ? eur(eff) : "—"}</td>
-                <td><Status level={lv}>{lv === "ok" ? "Ổn" : lv === "crit" ? "Cần xử lý" : w.length + fl + " lưu ý"}</Status></td>
-              </tr>);
-          })}</tbody>
-        </table></div>
+              <TableRow key={s.id} className="cursor-pointer" onClick={() => setDetail(s.id)}>
+                <TableCell className="font-medium">{s.name}</TableCell><TableCell>{s.contract || "—"}</TableCell>
+                <TableCell className="text-right tabular-nums">{x.days}</TableCell><TableCell className="text-right tabular-nums">{hours(x.min)}</TableCell><TableCell className="text-right tabular-nums">{eur(pay)}</TableCell><TableCell className="text-right tabular-nums">{eff ? eur(eff) : "—"}</TableCell>
+                <TableCell><Status level={lv}>{lv === "ok" ? "Ổn" : lv === "crit" ? "Cần xử lý" : w.length + fl + " lưu ý"}</Status></TableCell>
+              </TableRow>);
+          })}</TableBody>
+        </TableBox>
       )}
-      <p className="muted small">Lương dự tính dựa trên mức lương trong hồ sơ, chỉ để kiểm tra mức tối thiểu; không thay thế bảng lương của Steuerberater.</p>
+      <Muted>Lương dự tính dựa trên mức lương trong hồ sơ, chỉ để kiểm tra mức tối thiểu; không thay thế bảng lương của Steuerberater.</Muted>
     </>
   );
 }
@@ -101,22 +103,21 @@ function EditDay({ sid, date }) {
 
   return (
     <>
-      <ModalHead title={"Sửa giờ: " + s.name} />
-      <Field label="Ngày"><input type="date" value={nd} onChange={(e) => setNd(e.target.value)} /></Field>
-      <div className="stack-s">
+      <ModalHead title={"Sửa giờ: " + s.name} sub="Khoảng trống giữa các đoạn được tính là giờ nghỉ." />
+      <Field label="Ngày"><Input type="date" value={nd} onChange={(e) => setNd(e.target.value)} /></Field>
+      <div className="flex flex-col gap-2">
         {segs.length ? segs.map((g, i) => (
-          <div className="seg-row" key={i}>
-            <Field label="Vào"><input type="time" value={g.in} onChange={(e) => upd(i, "in", e.target.value)} /></Field>
-            <Field label="Ra"><input type="time" value={g.out} onChange={(e) => upd(i, "out", e.target.value)} /></Field>
-            <button className="btn ghost danger sm" onClick={() => setSegs(segs.filter((_, j) => j !== i))}>Xóa</button>
+          <div className="grid grid-cols-[1fr_1fr_auto] items-end gap-2" key={i}>
+            <Field label="Vào"><Input type="time" value={g.in} onChange={(e) => upd(i, "in", e.target.value)} /></Field>
+            <Field label="Ra"><Input type="time" value={g.out} onChange={(e) => upd(i, "out", e.target.value)} /></Field>
+            <Button variant="ghost" className="text-destructive" onClick={() => setSegs(segs.filter((_, j) => j !== i))}>Xóa</Button>
           </div>
-        )) : <p className="muted small">Không có đoạn nào; lưu sẽ xóa giờ làm của ngày này.</p>}
+        )) : <Muted>Không có đoạn nào; lưu sẽ xóa giờ làm của ngày này.</Muted>}
       </div>
-      <button className="btn" onClick={() => setSegs([...segs, { in: "", out: "" }])}>Thêm đoạn làm việc</button>
-      <p className="muted small">Khoảng trống giữa các đoạn được tính là giờ nghỉ.</p>
-      <Field label="Lý do sửa (bắt buộc)"><select value={reason} onChange={(e) => setReason(e.target.value)}><option value="">Chọn lý do…</option><option>Quên chấm công</option><option>Chấm nhầm giờ</option><option>Máy hỏng / mất mạng</option><option>Khác</option></select></Field>
-      <Field label="Ghi chú"><input maxLength={140} value={note} onChange={(e) => setNote(e.target.value)} placeholder="Ví dụ: quên chấm ra ca, đã xác nhận với nhân viên" /></Field>
-      <div className="actions"><button className="btn" onClick={closeModal}>Hủy</button><button className="btn primary" onClick={save}>Lưu</button></div>
+      <Button variant="outline" className="self-start" onClick={() => setSegs([...segs, { in: "", out: "" }])}>Thêm đoạn làm việc</Button>
+      <Field label="Lý do sửa (bắt buộc)"><Select value={reason} onChange={setReason}><option value="">Chọn lý do…</option><option>Quên chấm công</option><option>Chấm nhầm giờ</option><option>Máy hỏng / mất mạng</option><option>Khác</option></Select></Field>
+      <Field label="Ghi chú"><Input maxLength={140} value={note} onChange={(e) => setNote(e.target.value)} placeholder="Ví dụ: quên chấm ra ca, đã xác nhận với nhân viên" /></Field>
+      <Actions><span className="flex-1" /><Button variant="outline" onClick={closeModal}>Hủy</Button><Button onClick={save}>Lưu</Button></Actions>
     </>
   );
 }

@@ -1,19 +1,19 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useStore } from "./store.jsx";
 import { allAlerts, setting } from "./lib/logic.js";
-import { hm, hashPin } from "./lib/utils.js";
-import { PinPad } from "./components/ui.jsx";
+import { cn, hm, hashPin } from "./lib/utils.js";
+import { Button, PinPad, Tabs } from "./components/ui.jsx";
+import { Separator } from "@/components/ui/separator";
 import Overview from "./views/Overview.jsx";
 import Kiosk from "./views/Kiosk.jsx";
 import Timesheet from "./views/Timesheet.jsx";
 import Staff from "./views/Staff.jsx";
 import Products from "./views/Products.jsx";
-import Hygiene from "./views/Hygiene.jsx";
+import Hygiene, { HygChecklist } from "./views/Hygiene.jsx";
 import Bgw from "./views/Bgw.jsx";
 import Inspect from "./views/Inspect.jsx";
 import Shop from "./views/Shop.jsx";
 import Setup from "./views/Setup.jsx";
-import { HygChecklist } from "./views/Hygiene.jsx";
 
 const NAV = [
   ["tong-quan", "Tổng quan", Overview],
@@ -53,16 +53,12 @@ export default function App() {
   }, [closeModal]);
 
   const lockable = isCounter() && !!D.settings.adminPinHash;
-  const lockActive = lockable && locked;
 
   useEffect(() => {
     const mark = () => { lastAct.current = Date.now(); };
     ["pointerdown", "keydown"].forEach((ev) => document.addEventListener(ev, mark, true));
     const t = setInterval(() => {
-      if (lockable && !locked) {
-        const mins = Number(D.settings.lockMinutes) || 5;
-        if (Date.now() - lastAct.current > mins * 60000) { setLocked(true); closeModal(); }
-      }
+      if (lockable && !locked && Date.now() - lastAct.current > (Number(D.settings.lockMinutes) || 5) * 60000) { setLocked(true); closeModal(); }
     }, 15000);
     return () => { ["pointerdown", "keydown"].forEach((ev) => document.removeEventListener(ev, mark, true)); clearInterval(t); };
   }, [lockable, locked, D.settings.lockMinutes, closeModal]);
@@ -70,8 +66,7 @@ export default function App() {
   const alerts = useMemo(() => allAlerts(D), [D, now]); // eslint-disable-line react-hooks/exhaustive-deps
   const crit = alerts.filter((a) => a.level === "crit").length;
   const salon = setting(D, "salonName");
-  const d = new Date(now);
-  const clock = d.toLocaleDateString("de-DE", { weekday: "short", day: "2-digit", month: "2-digit" }) + " · " + hm(now);
+  const clock = new Date(now).toLocaleDateString("de-DE", { weekday: "short", day: "2-digit", month: "2-digit" }) + " · " + hm(now);
 
   const unlock = () => openModal(
     <PinPad title="Mở khóa chủ tiệm" hint="Nhập mã PIN chủ tiệm (6 số)" length={6} onCancel={closeModal}
@@ -83,42 +78,45 @@ export default function App() {
   );
 
   if (!D.settings.setupDone) return <Setup />;
-
-  if (lockActive) return <LockedScreen salon={salon} clock={clock} onUnlock={unlock} />;
+  if (lockable && locked) return <LockedScreen salon={salon} clock={clock} onUnlock={unlock} />;
 
   const Current = NAV.find((n) => n[0] === view)[2];
   return (
-    <div className="shell">
-      <aside className="rail">
-        <div className="brand">
-          <span className="logo" aria-hidden="true">V</span>
-          <div>
-            <div className="brand-name">ViBeauty<b>SAFE</b></div>
-            <div className="brand-salon">{salon}</div>
+    <div className="min-h-screen bg-muted/40 md:grid md:grid-cols-[232px_1fr]">
+      <aside className="sticky top-0 z-10 border-b bg-background md:h-screen md:border-r md:border-b-0">
+        <div className="flex h-full flex-col gap-4 px-3 pt-3 md:pt-5 md:pb-3">
+          <div className="flex items-center justify-between gap-2 px-2">
+            <div className="min-w-0">
+              <div className="font-semibold">ViBeautySAFE</div>
+              <div className="truncate text-xs text-muted-foreground">{salon}</div>
+            </div>
+            <span className="text-xs tabular-nums text-muted-foreground md:hidden">{clock}</span>
+          </div>
+          <nav aria-label="Màn hình" className="-mx-3 flex overflow-x-auto px-3 md:mx-0 md:flex-col md:gap-4 md:overflow-visible md:px-0">
+            {GROUPS.map(([g, keys]) => (
+              <div key={g} className="flex md:flex-col md:gap-0.5">
+                <div className="hidden px-2 pb-1 text-xs text-muted-foreground md:block">{g}</div>
+                {keys.map((k) => {
+                  const active = view === k;
+                  return (
+                    <a key={k} href={"#" + k} aria-current={active ? "page" : undefined}
+                      className={cn("flex items-center justify-between gap-2 whitespace-nowrap px-2 py-2 text-sm md:rounded-md md:py-1.5",
+                        active ? "border-b-2 border-foreground font-medium md:border-b-0 md:bg-muted" : "border-b-2 border-transparent text-muted-foreground hover:text-foreground md:border-b-0 md:hover:bg-muted/60")}>
+                      <span>{NAV.find((x) => x[0] === k)[1]}</span>
+                      {k === "tong-quan" && crit > 0 && <span className="rounded-full bg-destructive px-1.5 text-[11px] leading-[18px] font-semibold text-white">{crit}</span>}
+                    </a>
+                  );
+                })}
+              </div>
+            ))}
+          </nav>
+          <div className="mt-auto hidden items-center justify-between gap-2 border-t px-2 pt-3 text-xs text-muted-foreground tabular-nums md:flex">
+            <span>{clock}</span>
+            {lockable && <Button variant="outline" size="xs" onClick={() => setLocked(true)}>Khóa máy</Button>}
           </div>
         </div>
-        <nav aria-label="Màn hình">
-          {GROUPS.map(([g, keys]) => (
-            <div className="nav-group" key={g}>
-              <div className="nav-label">{g}</div>
-              {keys.map((k) => {
-                const n = NAV.find((x) => x[0] === k);
-                return (
-                  <a key={k} href={"#" + k} aria-current={view === k ? "page" : undefined}>
-                    <span>{n[1]}</span>
-                    {k === "tong-quan" && crit > 0 && <span className="count">{crit}</span>}
-                  </a>
-                );
-              })}
-            </div>
-          ))}
-        </nav>
-        <div className="rail-foot">
-          <div className="mono small">{clock}</div>
-          {lockable && <button className="btn sm" onClick={() => setLocked(true)}>Khóa máy</button>}
-        </div>
       </aside>
-      <main className="main">
+      <main className="mx-auto flex w-full max-w-6xl min-w-0 flex-col gap-6 px-4 pt-6 md:px-8 md:pt-8">
         <Current alerts={alerts} now={now} />
         <Footer />
       </main>
@@ -129,18 +127,15 @@ export default function App() {
 function LockedScreen({ salon, clock, onUnlock }) {
   const [kv, setKv] = useState("cham-cong");
   return (
-    <div className="locked">
-      <header className="locked-top">
-        <div className="brand"><span className="logo" aria-hidden="true">V</span><div><div className="brand-name">{salon}</div><div className="brand-salon mono">{clock}</div></div></div>
-        <div className="seg" role="tablist">
-          <button role="tab" aria-selected={kv === "cham-cong"} onClick={() => setKv("cham-cong")}>Chấm công</button>
-          <button role="tab" aria-selected={kv === "ve-sinh"} onClick={() => setKv("ve-sinh")}>Checklist vệ sinh</button>
-        </div>
-        <button className="btn" onClick={onUnlock}>Mở khóa chủ tiệm</button>
+    <div className="min-h-screen bg-muted/40">
+      <header className="flex flex-wrap items-center justify-between gap-3 border-b bg-background px-4 py-3 md:px-8">
+        <div><div className="font-semibold">{salon}</div><div className="text-xs text-muted-foreground tabular-nums">{clock}</div></div>
+        <Tabs value={kv} onChange={setKv} tabs={[["cham-cong", "Chấm công"], ["ve-sinh", "Checklist vệ sinh"]]} />
+        <Button variant="outline" onClick={onUnlock}>Mở khóa chủ tiệm</Button>
       </header>
-      <main className="main narrow">
-        {kv === "cham-cong" ? <Kiosk /> : <><h1 className="h-plain">Checklist vệ sinh hôm nay</h1><HygChecklist /></>}
-        <p className="muted small">Máy đang khóa: chỉ chấm công và checklist vệ sinh. Dữ liệu khác chỉ chủ tiệm mở được.</p>
+      <main className="mx-auto flex max-w-5xl flex-col gap-6 px-4 py-6 md:px-8">
+        {kv === "cham-cong" ? <Kiosk /> : <><h1 className="text-2xl font-semibold">Checklist vệ sinh hôm nay</h1><HygChecklist /></>}
+        <p className="text-sm text-muted-foreground">Máy đang khóa: chỉ chấm công và checklist vệ sinh. Dữ liệu khác chỉ chủ tiệm mở được.</p>
       </main>
     </div>
   );
@@ -148,9 +143,10 @@ function LockedScreen({ salon, clock, onUnlock }) {
 
 function Footer() {
   return (
-    <footer className="foot">
-      <div><b>ViBeautySAFE</b> · Phần mềm được phát triển bởi <b>Lee Nhung Nguyen</b>. © 2026 Lee Nhung Nguyen. Bảo lưu mọi quyền; không sao chép, phân phối hoặc dùng lại nội dung và ý tưởng khi chưa có sự đồng ý bằng văn bản.</div>
-      <div>Cần tư vấn/hỗ trợ? Email <a href="mailto:info@one4allvn.de">info@one4allvn.de</a> · Tel <a href="tel:+4917616789999">0176 1678 9999</a></div>
+    <footer className="mt-4 pb-8 text-xs text-muted-foreground">
+      <Separator className="mb-4" />
+      <p><b className="text-foreground">ViBeautySAFE</b> · Phần mềm được phát triển bởi <b>Lee Nhung Nguyen</b>. © 2026 Lee Nhung Nguyen. Bảo lưu mọi quyền; không sao chép, phân phối hoặc dùng lại nội dung và ý tưởng khi chưa có sự đồng ý bằng văn bản.</p>
+      <p className="mt-1">Cần tư vấn/hỗ trợ? Email <a className="underline" href="mailto:info@one4allvn.de">info@one4allvn.de</a> · Tel <a className="underline" href="tel:+4917616789999">0176 1678 9999</a></p>
     </footer>
   );
 }

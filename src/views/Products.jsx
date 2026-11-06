@@ -3,7 +3,10 @@ import { useStore } from "../store.jsx";
 import { checkInci } from "../lib/logic.js";
 import { BANNED, CATS } from "../lib/constants.js";
 import { uid } from "../lib/utils.js";
-import { PageHead, Empty, Status, Row, ModalHead, Field, Check, ConfirmButton, Section } from "../components/ui.jsx";
+import { PageHead, Empty, Status, Row, List, ModalHead, Field, Select, Check, ConfirmButton, Section, Muted, TableBox, Actions, Button, Grid } from "../components/ui.jsx";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
 
 export default function Products() {
   const { D, openModal } = useStore();
@@ -12,31 +15,31 @@ export default function Products() {
   const open = (id) => openModal(<ProductForm pid={id} />);
   return (
     <>
-      <PageHead title="Sản phẩm" actions={<button className="btn primary" onClick={() => open(null)}>Thêm sản phẩm</button>}>
-        Kiểm tra gel và sơn trong kho với danh sách chất bị cấm trong mỹ phẩm tại EU.
-      </PageHead>
+      <PageHead title="Sản phẩm" actions={<Button onClick={() => open(null)}>Thêm sản phẩm</Button>}>Kiểm tra gel và sơn trong kho với danh sách chất bị cấm trong mỹ phẩm tại EU.</PageHead>
       <Section title="Chất đang kiểm tra">
-        <div className="banned">
+        <List>
           {BANNED.map((b) => (
-            <div key={b.key}><b className="mono">{b.key}</b><span>{b.name}</span><span className="mono muted small">CAS {b.cas} · cấm từ {b.since}</span></div>
+            <div key={b.key} className="flex flex-wrap items-baseline gap-x-4 gap-y-1 px-4 py-3 text-sm">
+              <span className="w-12 font-semibold text-destructive">{b.key}</span><span className="flex-1">{b.name}</span><span className="text-xs text-muted-foreground">CAS {b.cas} · cấm từ {b.since}</span>
+            </div>
           ))}
-        </div>
-        <p className="muted small">Kết quả chỉ mang tính tham khảo, dựa trên danh sách thành phần bạn cung cấp. Luôn xin nhà cung cấp xác nhận bằng văn bản.</p>
+        </List>
+        <Muted>Kết quả chỉ mang tính tham khảo, dựa trên danh sách thành phần bạn cung cấp. Luôn xin nhà cung cấp xác nhận bằng văn bản.</Muted>
       </Section>
       {ps.length ? (
-        <div className="table-wrap"><table>
-          <thead><tr><th>Sản phẩm</th><th>Loại</th><th>Kết quả</th><th>Xác nhận NCC</th></tr></thead>
-          <tbody>{ps.map((p) => {
+        <TableBox>
+          <TableHeader><TableRow><TableHead>Sản phẩm</TableHead><TableHead>Loại</TableHead><TableHead>Kết quả</TableHead><TableHead>Xác nhận NCC</TableHead></TableRow></TableHeader>
+          <TableBody>{ps.map((p) => {
             const r = checkInci(p.inci);
             return (
-              <tr key={p.id} className="click" onClick={() => open(p.id)}>
-                <td><b>{p.name}</b>{p.example && <span className="tag">Ví dụ</span>}<div className="muted small">{p.brand}</div></td>
-                <td>{p.cat || "—"}</td>
-                <td>{r.found.length ? <Status level="crit">Chứa {r.found.map((b) => b.key).join(", ")}</Status> : r.checked ? <Status level="ok">Không thấy chất cấm</Status> : <Status level="warn">Chưa có thành phần</Status>}</td>
-                <td>{p.supplierOk ? <Status level="ok">Có</Status> : <Status level="na">Chưa</Status>}</td>
-              </tr>);
-          })}</tbody>
-        </table></div>
+              <TableRow key={p.id} className="cursor-pointer" onClick={() => open(p.id)}>
+                <TableCell><div className="font-medium">{p.name}</div><div className="text-xs text-muted-foreground">{p.brand}</div></TableCell>
+                <TableCell>{p.cat || "—"}</TableCell>
+                <TableCell>{r.found.length ? <Status level="crit">Chứa {r.found.map((b) => b.key).join(", ")}</Status> : r.checked ? <Status level="ok">Không thấy chất cấm</Status> : <Status level="warn">Chưa có thành phần</Status>}</TableCell>
+                <TableCell>{p.supplierOk ? <Status level="ok">Có</Status> : <Status level="na">Chưa</Status>}</TableCell>
+              </TableRow>);
+          })}</TableBody>
+        </TableBox>
       ) : <Empty>Chưa có sản phẩm. Bấm “Thêm sản phẩm” rồi dán danh sách INCI từ nhãn.</Empty>}
     </>
   );
@@ -49,26 +52,26 @@ function ProductForm({ pid }) {
   const r = checkInci(p.inci);
   const save = () => {
     const name = (p.name || "").trim(); if (!name) { toast("Hãy nhập tên sản phẩm"); return; }
-    put("products", p.id, { ...p, name, brand: (p.brand || "").trim(), inci: (p.inci || "").trim(), example: p.example || false, checkedAt: Date.now() });
+    put("products", p.id, { ...p, name, brand: (p.brand || "").trim(), inci: (p.inci || "").trim(), checkedAt: Date.now() });
     closeModal(); toast("Đã lưu " + name);
   };
   return (
     <>
       <ModalHead title={pid ? p.name || "Sản phẩm" : "Thêm sản phẩm"} />
-      <div className="grid2">
-        <Field label="Tên sản phẩm"><input value={p.name} onChange={(e) => f("name")(e.target.value)} /></Field>
-        <Field label="Hãng"><input value={p.brand || ""} onChange={(e) => f("brand")(e.target.value)} /></Field>
-      </div>
-      <Field label="Loại"><select value={p.cat} onChange={(e) => f("cat")(e.target.value)}>{CATS.map((c) => <option key={c}>{c}</option>)}</select></Field>
-      <Field label="Thành phần (INCI)"><textarea value={p.inci || ""} onChange={(e) => f("inci")(e.target.value)} placeholder="Ví dụ: Di-HEMA Trimethylhexyl Dicarbamate, HEMA, Hydroxypropyl Methacrylate, …" /></Field>
-      {r.found.length > 0 && <Row level="crit" title={"Phát hiện " + r.found.map((b) => b.name).join(", ")} detail="Không được bán, dùng hay lưu kho. Tách riêng và xử lý như rác thải đặc biệt." />}
-      {!r.found.length && r.checked && <Row level="ok" title="Không thấy chất bị cấm trong danh sách này" />}
+      <Grid>
+        <Field label="Tên sản phẩm"><Input value={p.name} onChange={(e) => f("name")(e.target.value)} /></Field>
+        <Field label="Hãng"><Input value={p.brand || ""} onChange={(e) => f("brand")(e.target.value)} /></Field>
+      </Grid>
+      <Field label="Loại"><Select value={p.cat} onChange={f("cat")}>{CATS.map((c) => <option key={c}>{c}</option>)}</Select></Field>
+      <Field label="Thành phần (INCI)"><Textarea className="min-h-28 font-mono text-xs" value={p.inci || ""} onChange={(e) => f("inci")(e.target.value)} placeholder="Ví dụ: Di-HEMA Trimethylhexyl Dicarbamate, HEMA, Hydroxypropyl Methacrylate, …" /></Field>
+      {r.found.length > 0 && <List><Row level="crit" title={"Phát hiện " + r.found.map((b) => b.name).join(", ")} detail="Không được bán, dùng hay lưu kho. Tách riêng và xử lý như rác thải đặc biệt." /></List>}
+      {!r.found.length && r.checked && <List><Row level="ok" title="Không thấy chất bị cấm trong danh sách này" /></List>}
       <Check checked={p.supplierOk} onChange={f("supplierOk")}>Có giấy xác nhận của nhà cung cấp rằng sản phẩm không chứa TPO/DMTA</Check>
-      <div className="actions">
+      <Actions>
         {pid && <ConfirmButton confirmText="Bấm lần nữa để xóa" onConfirm={() => { remove("products", pid); closeModal(); toast("Đã xóa sản phẩm"); }}>Xóa</ConfirmButton>}
-        <span className="grow" />
-        <button className="btn" onClick={closeModal}>Hủy</button><button className="btn primary" onClick={save}>Lưu</button>
-      </div>
+        <span className="flex-1" />
+        <Button variant="outline" onClick={closeModal}>Hủy</Button><Button onClick={save}>Lưu</Button>
+      </Actions>
     </>
   );
 }

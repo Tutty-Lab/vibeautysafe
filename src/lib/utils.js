@@ -25,3 +25,7 @@ export async function hashPin(pin, salt) {
   }
 }
 export function copyText(t) { return navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject(); }
+
+import { clsx } from "clsx";
+import { twMerge } from "tailwind-merge";
+export function cn(...inputs) { return twMerge(clsx(inputs)); }

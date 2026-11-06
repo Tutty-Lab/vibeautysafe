@@ -1,13 +1,15 @@
 import { useState } from "react";
 import { useStore } from "../store.jsx";
 import { SHOP_FIELDS } from "../lib/constants.js";
-import { Check } from "../components/ui.jsx";
+import { cn } from "../lib/utils.js";
+import { Check, Muted, Button, Grid } from "../components/ui.jsx";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { ShopField, PinSettings, pinPatch } from "./Shop.jsx";
 
 const TITLES = ["Tiệm của bạn", "Chủ tiệm và liên hệ", "Mã số doanh nghiệp", "Máy ở quầy"];
 
 export default function Setup() {
-  const { D, saveSettings, loadDemo, toast } = useStore();
+  const { D, saveSettings, toast } = useStore();
   const [step, setStep] = useState(0);
   const [d, setD] = useState(() => ({ ...D.settings }));
   const [pin, setPin] = useState({ p1: "", p2: "", lm: 5, ctr: false });
@@ -25,35 +27,36 @@ export default function Setup() {
   };
 
   return (
-    <div className="setup">
-      <main className="setup-main">
-        <div className="setup-top">
-          <div className="brand-name">ViBeauty<b>SAFE</b></div>
-          <button className="btn sm" onClick={() => { loadDemo(); location.hash = "#tong-quan"; }}>Xem bản demo</button>
-        </div>
-        <div className="setup-progress">{TITLES.map((t, i) => <span key={t} className={i <= step ? "on" : ""} />)}</div>
-        <div className="kicker">Thiết lập lần đầu · Bước {step + 1}/4</div>
-        <h2 className="h-display">{TITLES[step]}</h2>
-        {step < 3 ? (
-          <>
-            <div className="grid2">{SHOP_FIELDS[step][1].map((f) => <ShopField key={f[0]} f={f} value={d[f[0]]} onChange={on} />)}</div>
-            {step === 0 && <><Check checked={d.hasSteri} onChange={(x) => on("hasSteri", x)}>Tiệm tự tiệt trùng dụng cụ</Check><p className="muted small">Bang quyết định các yêu cầu vệ sinh áp dụng cho tiệm (ví dụ Hygieneplan bắt buộc ở Baden-Württemberg).</p></>}
-            {step === 2 && <p className="muted small">Có thể bỏ trống và điền sau. Betriebsnummer cần khi tiệm có nhân viên; Steuerberater thường có số này.</p>}
-          </>
-        ) : (
-          <>
-            <p>Nếu tiệm dùng máy tính bảng ở quầy để chấm công, hãy đặt mã PIN 6 số của chủ tiệm. Máy quầy sẽ tự khóa, nhân viên chỉ chấm công và đánh dấu checklist.</p>
-            <PinSettings v={pin} setV={setPin} />
-            <p className="muted small">Có thể bỏ qua và đặt sau trong Thông tin tiệm.</p>
-          </>
-        )}
-        <div className="actions">
-          <button className="btn ghost" onClick={() => saveSettings({ ...d, setupDone: true })}>Để sau</button>
-          <span className="grow" />
-          {step > 0 && <button className="btn" onClick={() => setStep(step - 1)}>Quay lại</button>}
-          <button className="btn primary" onClick={next}>{step === 3 ? "Hoàn tất" : "Tiếp tục"}</button>
-        </div>
-      </main>
+    <div className="flex min-h-screen justify-center bg-muted/40 px-4 py-10">
+      <Card className="h-fit w-full max-w-2xl">
+        <CardHeader>
+          <div className="mb-3 font-semibold">ViBeautySAFE</div>
+          <div className="mb-3 grid grid-cols-4 gap-1">{TITLES.map((t, i) => <span key={t} className={cn("h-1 rounded-full", i <= step ? "bg-foreground" : "bg-muted")} />)}</div>
+          <CardDescription>Thiết lập lần đầu · Bước {step + 1}/4</CardDescription>
+          <CardTitle className="text-xl">{TITLES[step]}</CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-4">
+          {step < 3 ? (
+            <>
+              <Grid>{SHOP_FIELDS[step][1].map((f) => <ShopField key={f[0]} f={f} value={d[f[0]]} onChange={on} />)}</Grid>
+              {step === 0 && <><Check checked={d.hasSteri} onChange={(x) => on("hasSteri", x)}>Tiệm tự tiệt trùng dụng cụ</Check><Muted>Bang quyết định các yêu cầu vệ sinh áp dụng cho tiệm (ví dụ Hygieneplan bắt buộc ở Baden-Württemberg).</Muted></>}
+              {step === 2 && <Muted>Có thể bỏ trống và điền sau. Betriebsnummer cần khi tiệm có nhân viên; Steuerberater thường có số này.</Muted>}
+            </>
+          ) : (
+            <>
+              <p className="text-sm">Nếu tiệm dùng máy tính bảng ở quầy để chấm công, hãy đặt mã PIN 6 số của chủ tiệm. Máy quầy sẽ tự khóa, nhân viên chỉ chấm công và đánh dấu checklist.</p>
+              <PinSettings v={pin} setV={setPin} />
+              <Muted>Có thể bỏ qua và đặt sau trong Thông tin tiệm.</Muted>
+            </>
+          )}
+        </CardContent>
+        <CardFooter className="flex gap-2">
+          <Button variant="ghost" onClick={() => saveSettings({ ...d, setupDone: true })}>Để sau</Button>
+          <span className="flex-1" />
+          {step > 0 && <Button variant="outline" onClick={() => setStep(step - 1)}>Quay lại</Button>}
+          <Button onClick={next}>{step === 3 ? "Hoàn tất" : "Tiếp tục"}</Button>
+        </CardFooter>
+      </Card>
     </div>
   );
 }

@@ -26,18 +26,13 @@ export default function Setup() {
 
   return (
     <div className="setup">
-      <aside className="setup-side">
-        <div className="brand"><span className="logo" aria-hidden="true">V</span><div className="brand-name">ViBeauty<b>SAFE</b></div></div>
-        <h1>Sổ tay an toàn cho tiệm nails và kosmetik tại Đức.</h1>
-        <p>Chấm công theo MiLoG, hồ sơ nhân viên, vệ sinh, BGW và những gì cần đưa khi Zoll hoặc Gesundheitsamt đến.</p>
-        <ol className="setup-steps">{TITLES.map((t, i) => <li key={t} className={i === step ? "on" : i < step ? "done" : ""}>{t}</li>)}</ol>
-        <div className="setup-demo">
-          <p className="small">Muốn xem trước? Mở bản demo với một tiệm mẫu. Có thể xóa dữ liệu mẫu bất cứ lúc nào.</p>
-          <button className="btn" onClick={() => { loadDemo(); location.hash = "#tong-quan"; }}>Xem bản demo</button>
-        </div>
-      </aside>
       <main className="setup-main">
-        <div className="kicker">Bước {step + 1} / 4</div>
+        <div className="setup-top">
+          <div className="brand-name">ViBeauty<b>SAFE</b></div>
+          <button className="btn sm" onClick={() => { loadDemo(); location.hash = "#tong-quan"; }}>Xem bản demo</button>
+        </div>
+        <div className="setup-progress">{TITLES.map((t, i) => <span key={t} className={i <= step ? "on" : ""} />)}</div>
+        <div className="kicker">Thiết lập lần đầu · Bước {step + 1}/4</div>
         <h2 className="h-display">{TITLES[step]}</h2>
         {step < 3 ? (
           <>

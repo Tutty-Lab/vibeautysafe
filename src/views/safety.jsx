@@ -55,7 +55,6 @@ export function CourseSection({ area, intro }) {
         </table></div>
       </Section>
       <SupportList area={area} kind="course" />
-      <ContactBox />
     </>
   );
 }
@@ -119,7 +118,6 @@ export function DocsSection({ area }) {
         </Section>
       ))}
       <SupportList area={area} kind="docs" />
-      <ContactBox />
     </>
   );
 }
@@ -191,7 +189,6 @@ function SupportDone({ r }) {
       <ModalHead title="Đã ghi nhận yêu cầu" />
       <p>Yêu cầu đã lưu trong ViBeautySAFE. Để được hỗ trợ, gửi nội dung dưới đây cho {DEV.name} qua email hoặc gọi điện.</p>
       <textarea className="plain" readOnly value={txt} style={{ minHeight: 150 }} />
-      <ContactBox />
       <div className="actions"><span className="grow" />
         <button className="btn" onClick={() => copyText(txt).then(() => toast("Đã sao chép"), () => toast("Không sao chép được, hãy chọn và nhấn Ctrl+C"))}>Sao chép</button>
         <a className="btn" href={mail}>Mở email</a>

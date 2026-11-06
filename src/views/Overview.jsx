@@ -28,7 +28,7 @@ export default function Overview({ alerts }) {
 
   return (
     <>
-      <PageHead kicker={new Date().toLocaleDateString("vi-VN", { weekday: "long", day: "numeric", month: "long" })} title="Tổng quan">
+      <PageHead title="Tổng quan">
         Những việc cần xử lý để tiệm luôn sẵn sàng khi Zoll hoặc cơ quan kiểm tra đến.
       </PageHead>
 

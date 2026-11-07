@@ -4,6 +4,7 @@ import { allAlerts, setting } from "./lib/logic.js";
 import { cn, hm, hashPin } from "./lib/utils.js";
 import { Button, PinPad, Tabs } from "./components/ui.jsx";
 import { Separator } from "@/components/ui/separator";
+import { MenuIcon, XIcon } from "lucide-react";
 import Overview from "./views/Overview.jsx";
 import Kiosk from "./views/Kiosk.jsx";
 import Timesheet from "./views/Timesheet.jsx";
@@ -43,11 +44,12 @@ export default function App() {
   const { D, openModal, closeModal } = useStore();
   const [view, setView] = useState(readHash);
   const [locked, setLocked] = useState(true);
+  const [menu, setMenu] = useState(false);
   const lastAct = useRef(Date.now());
   const now = useNow(30000);
 
   useEffect(() => {
-    const f = () => { setView(readHash()); closeModal(); window.scrollTo(0, 0); };
+    const f = () => { setView(readHash()); setMenu(false); closeModal(); window.scrollTo(0, 0); };
     window.addEventListener("hashchange", f);
     return () => window.removeEventListener("hashchange", f);
   }, [closeModal]);
@@ -84,24 +86,27 @@ export default function App() {
   return (
     <div className="min-h-screen bg-muted/40 md:grid md:grid-cols-[232px_1fr]">
       <aside className="sticky top-0 z-10 border-b bg-background md:h-screen md:border-r md:border-b-0">
-        <div className="flex h-full flex-col gap-4 px-3 pt-3 md:pt-5 md:pb-3">
+        <div className="flex h-full max-h-screen flex-col gap-3 overflow-y-auto px-3 pt-3 md:gap-4 md:pt-5 md:pb-3">
           <div className="flex items-center justify-between gap-2 px-2">
             <div className="min-w-0">
               <div className="font-semibold">ViBeautySAFE</div>
               <div className="truncate text-xs text-muted-foreground">{salon}</div>
             </div>
-            <span className="text-xs tabular-nums text-muted-foreground md:hidden">{clock}</span>
+            <Button variant="outline" size="sm" className="md:hidden" aria-expanded={menu} aria-controls="mainnav" onClick={() => setMenu(!menu)}>
+              {menu ? <XIcon /> : <MenuIcon />}{NAV.find((n) => n[0] === view)[1]}
+              {!menu && crit > 0 && <span className="rounded-full bg-destructive px-1.5 text-[11px] leading-[18px] font-semibold text-white">{crit}</span>}
+            </Button>
           </div>
-          <nav aria-label="Màn hình" className="-mx-3 flex overflow-x-auto px-3 md:mx-0 md:flex-col md:gap-4 md:overflow-visible md:px-0">
+          <nav id="mainnav" aria-label="Màn hình" className={cn("flex-col gap-4 pb-3 md:flex md:pb-0", menu ? "flex" : "hidden")}>
             {GROUPS.map(([g, keys]) => (
-              <div key={g} className="flex md:flex-col md:gap-0.5">
-                <div className="hidden px-2 pb-1 text-xs text-muted-foreground md:block">{g}</div>
+              <div key={g} className="flex flex-col gap-0.5">
+                <div className="px-2 pb-1 text-xs text-muted-foreground">{g}</div>
                 {keys.map((k) => {
                   const active = view === k;
                   return (
                     <a key={k} href={"#" + k} aria-current={active ? "page" : undefined}
-                      className={cn("flex items-center justify-between gap-2 whitespace-nowrap px-2 py-2 text-sm md:rounded-md md:py-1.5",
-                        active ? "border-b-2 border-foreground font-medium md:border-b-0 md:bg-muted" : "border-b-2 border-transparent text-muted-foreground hover:text-foreground md:border-b-0 md:hover:bg-muted/60")}>
+                      className={cn("flex items-center justify-between gap-2 rounded-md px-2 py-2.5 text-sm md:py-1.5",
+                        active ? "bg-muted font-medium" : "text-muted-foreground hover:bg-muted/60 hover:text-foreground")}>
                       <span>{NAV.find((x) => x[0] === k)[1]}</span>
                       {k === "tong-quan" && crit > 0 && <span className="rounded-full bg-destructive px-1.5 text-[11px] leading-[18px] font-semibold text-white">{crit}</span>}
                     </a>
@@ -110,13 +115,13 @@ export default function App() {
               </div>
             ))}
           </nav>
-          <div className="mt-auto hidden items-center justify-between gap-2 border-t px-2 pt-3 text-xs text-muted-foreground tabular-nums md:flex">
+          <div className={cn("mt-auto items-center justify-between gap-2 border-t px-2 py-3 text-xs text-muted-foreground tabular-nums md:flex md:pb-0", menu ? "flex" : "hidden")}>
             <span>{clock}</span>
             {lockable && <Button variant="outline" size="xs" onClick={() => setLocked(true)}>Khóa máy</Button>}
           </div>
         </div>
       </aside>
-      <main className="mx-auto flex w-full max-w-6xl min-w-0 flex-col gap-6 px-4 pt-6 md:px-8 md:pt-8">
+      <main className="mx-auto flex w-full max-w-6xl min-w-0 flex-col gap-5 px-4 pt-5 md:gap-6 md:px-8 md:pt-8">
         <Current alerts={alerts} now={now} />
         <Footer />
       </main>

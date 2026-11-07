@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import { cn, daysUntil, deDate } from "@/lib/utils.js";
 import { DEV } from "@/lib/constants.js";
 import { useStore } from "@/store.jsx";
@@ -100,8 +100,15 @@ export function Row({ level, title, de, detail, right, onClick }) {
   );
 }
 
+/* On phones each row becomes a card; cells get their column name from the header via data-label. */
 export function TableBox({ children }) {
-  return <div className="rounded-lg border bg-card"><Table>{children}</Table></div>;
+  const ref = useRef(null);
+  useLayoutEffect(() => {
+    const el = ref.current; if (!el) return;
+    const heads = [...el.querySelectorAll("thead th")].map((th) => th.textContent.trim());
+    el.querySelectorAll("tbody tr").forEach((tr) => [...tr.children].forEach((td, i) => { if (heads[i]) td.setAttribute("data-label", heads[i]); else td.removeAttribute("data-label"); }));
+  });
+  return <div ref={ref} className="rtable rounded-lg border bg-card max-md:border-0 max-md:bg-transparent"><Table>{children}</Table></div>;
 }
 
 export function Field({ label, children, className }) {
